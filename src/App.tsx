@@ -124,25 +124,25 @@ function App() {
 
 const CardView = ({ card }: { card: AnkiCard }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-        <div className="p-8 prose prose-lg max-w-none">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Front</h3>
-          <div className="text-gray-900 leading-relaxed font-serif">
+    <div className="bg-[#1C1F17] rounded-xl shadow-lg border border-white/5 overflow-hidden hover:border-blue-500/30 transition-all duration-300">
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
+        <div className="p-8 prose prose-invert prose-lg max-w-none">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Front</h3>
+          <div className="text-gray-200 leading-relaxed font-serif">
             {parse(card.front)}
           </div>
         </div>
-        <div className="p-8 prose prose-lg max-w-none bg-gray-50/50">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Back</h3>
-          <div className="text-gray-900 leading-relaxed font-serif">
+        <div className="p-8 prose prose-invert prose-lg max-w-none bg-black/20">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Back</h3>
+          <div className="text-gray-200 leading-relaxed font-serif">
             {parse(card.back)}
           </div>
         </div>
       </div>
       {card.tags.length > 0 && (
-        <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 flex gap-2 flex-wrap">
+        <div className="bg-black/40 px-8 py-4 border-t border-white/5 flex gap-2 flex-wrap">
           {card.tags.map(tag => (
-            <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs rounded-full font-semibold tracking-wide">
+            <span key={tag} className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full font-semibold tracking-wide">
               {tag}
             </span>
           ))}

@@ -15,7 +15,7 @@ export interface UseAnkiFileReturn {
     cards: AnkiCard[];
     error: string | null;
     fileList: string[];
-    processFile: (file: File) => Promise<void>;
+    processFiles: (files: File[]) => Promise<void>;
 }
 
 export const useAnkiFile = (): UseAnkiFileReturn => {
@@ -24,100 +24,102 @@ export const useAnkiFile = (): UseAnkiFileReturn => {
     const [error, setError] = useState<string | null>(null);
     const [fileList, setFileList] = useState<string[]>([]);
 
-    const processFile = async (file: File) => {
+    const processFiles = async (files: File[]) => {
         setStatus('loading');
         setError(null);
-        setCards([]);
+        setCards([]); // Clear previous cards for now, or could append? Let's clear for new batch.
+
+        const allCards: AnkiCard[] = [];
+        const allFilesList: string[] = [];
 
         try {
-            console.log('Loading file...');
-            const zip = new JSZip();
-            const content = await zip.loadAsync(file);
+            console.log(`Processing ${files.length} files...`);
 
-            const files = Object.keys(content.files);
-            console.log('Files in zip:', files);
-            setFileList(files);
-
-            let dbData: Uint8Array;
-
-            const dbFileV21b = content.file('collection.anki21b');
-            const dbFileV21 = content.file('collection.anki21');
-            const dbFileV2 = content.file('collection.anki2');
-
-            if (dbFileV21b) {
-                console.log('Found collection.anki21b (Zstd compressed). Decompressing...');
-                const compressedData = await dbFileV21b.async('uint8array');
-                dbData = decompress(compressedData);
-            } else if (dbFileV21) {
-                console.log('Found collection.anki21 (Zstd compressed). Decompressing...');
-                const compressedData = await dbFileV21.async('uint8array');
-                dbData = decompress(compressedData);
-            } else if (dbFileV2) {
-                console.log('Found collection.anki2 (Standard).');
-                // Check if it's the stub file by looking for other versions first (done above)
-                // If we are here, it's either a real v2 file or we failed to find the newer ones.
-                // However, the stub file usually co-exists with v21/v21b.
-                // Since we check v21/v21b FIRST, we should be safe.
-                dbData = await dbFileV2.async('uint8array');
-            } else {
-                throw new Error('Invalid .apkg file: neither collection.anki2, .anki21, nor .anki21b found.');
-            }
-
+            // Initialize SQL.js once
             console.log('Initializing SQL.js...');
             const SQL = await initSqlJs({
                 locateFile: (file) => `/${file}`
             });
 
-            console.log('Mounting database...');
-            const db = new SQL.Database(dbData);
+            for (const file of files) {
+                console.log(`Loading file: ${file.name}`);
+                const zip = new JSZip();
+                const content = await zip.loadAsync(file);
 
-            const query = `
-        SELECT c.id, n.flds, n.tags
-        FROM cards c
-        JOIN notes n ON c.nid = n.id
-        LIMIT 1000 -- Limit for safety in POC
-      `;
+                const zipEntries = Object.keys(content.files);
+                console.log(`Files in zip ${file.name}:`, zipEntries);
+                allFilesList.push(...zipEntries.map(f => `${file.name}: ${f}`));
 
-            const stmt = db.prepare(query);
-            const extractedCards: AnkiCard[] = [];
+                let dbData: Uint8Array;
 
-            while (stmt.step()) {
-                const row = stmt.getAsObject();
-                const id = row.id as number;
-                const flds = row.flds as string;
-                const tagsStr = row.tags as string;
+                const dbFileV21b = content.file('collection.anki21b');
+                const dbFileV21 = content.file('collection.anki21');
+                const dbFileV2 = content.file('collection.anki2');
 
-                // Split fields by Unit Separator
-                const parts = flds.split('\x1f');
-                const front = parts[0] || '';
-                // Join the rest as back, or just second part? 
-                // Usually index 0 is front, index 1..n is extra. 
-                // For simple display, let's take parts[1] or join remaining.
-                const back = parts.slice(1).join('<br/>');
+                if (dbFileV21b) {
+                    console.log('Found collection.anki21b (Zstd compressed). Decompressing...');
+                    const compressedData = await dbFileV21b.async('uint8array');
+                    dbData = decompress(compressedData);
+                } else if (dbFileV21) {
+                    console.log('Found collection.anki21 (Zstd compressed). Decompressing...');
+                    const compressedData = await dbFileV21.async('uint8array');
+                    dbData = decompress(compressedData);
+                } else if (dbFileV2) {
+                    console.log('Found collection.anki2 (Standard).');
+                    dbData = await dbFileV2.async('uint8array');
+                } else {
+                    console.warn(`Skipping invalid .apkg file ${file.name}: neither collection.anki2, .anki21, nor .anki21b found.`);
+                    continue; // Skip this file but continue others
+                }
 
-                const tags = tagsStr ? tagsStr.trim().split(' ').filter(Boolean) : [];
+                console.log(`Mounting database for ${file.name}...`);
+                const db = new SQL.Database(dbData);
 
-                extractedCards.push({
-                    id,
-                    front,
-                    back,
-                    tags
-                });
+                const query = `
+                    SELECT c.id, n.flds, n.tags
+                    FROM cards c
+                    JOIN notes n ON c.nid = n.id
+                    LIMIT 1000 -- Limit for safety per file
+                `;
+
+                const stmt = db.prepare(query);
+
+                while (stmt.step()) {
+                    const row = stmt.getAsObject();
+                    const id = row.id as number;
+                    const flds = row.flds as string;
+                    const tagsStr = row.tags as string;
+
+                    // Split fields by Unit Separator
+                    const parts = flds.split('\x1f');
+                    const front = parts[0] || '';
+                    const back = parts.slice(1).join('<br/>');
+
+                    const tags = tagsStr ? tagsStr.trim().split(' ').filter(Boolean) : [];
+
+                    allCards.push({
+                        id, // Note: IDs might collide across decks, but for display it's probably fine.
+                        front,
+                        back,
+                        tags
+                    });
+                }
+
+                stmt.free();
+                db.close();
             }
 
-            stmt.free();
-            db.close();
-
-            console.log(`Loaded ${extractedCards.length} cards.`);
-            setCards(extractedCards);
+            setFileList(allFilesList);
+            console.log(`Loaded total ${allCards.length} cards.`);
+            setCards(allCards);
             setStatus('ready');
 
         } catch (err: any) {
-            console.error('Error processing Anki file:', err);
+            console.error('Error processing Anki files:', err);
             setError(err.message || 'Unknown error occurred');
             setStatus('error');
         }
     };
 
-    return { status, cards, error, processFile, fileList };
+    return { status, cards, error, processFiles, fileList };
 };

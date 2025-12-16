@@ -3,22 +3,22 @@ import parse from 'html-react-parser';
 import { useAnkiFile, type AnkiCard } from './hooks/useAnkiFile';
 
 function App() {
-  const { status, cards, error, processFile, fileList } = useAnkiFile();
+  const { status, cards, error, processFiles, fileList } = useAnkiFile();
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
     }
-  }, [processFile]);
+  }, [processFiles]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(Array.from(e.target.files));
     }
   };
 
@@ -46,6 +46,7 @@ function App() {
               type="file"
               id="fileInput"
               accept=".apkg"
+              multiple
               className="hidden"
               onChange={handleFileChange}
             />

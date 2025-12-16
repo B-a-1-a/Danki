@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 
 export function MeshGradientSVG() {
     const colors = [
-        "#FFB3D9", // Pastel pink
+        "#e9b7d0ff", // Pastel pink
         "#87CEEB", // Sky blue
         "#4A90E2", // Medium blue
         "#2C3E50", // Dark blue-gray
@@ -66,14 +66,15 @@ export function MeshGradientSVG() {
 
                 <foreignObject width="290" height="290" x="0" y="0" clipPath="url(#starClip)">
                     <div className="w-full h-full">
-                        <MeshGradient colors={colors} className="w-full h-full" speed={1} />
+                        <MeshGradient colors={colors} className="w-full h-full" speed={.5} />
                     </div>
                 </foreignObject>
 
                 <motion.ellipse
                     rx="18"
                     ry="24"
-                    fill="currentColor"
+                    fill="#161912"
+                    style={{ fill: '#161912' }}
                     className="animate-blink-star"
                     animate={{
                         cx: 140 + eyeOffset.x,
@@ -84,7 +85,8 @@ export function MeshGradientSVG() {
                 <motion.ellipse
                     rx="18"
                     ry="24"
-                    fill="currentColor"
+                    fill="#161912"
+                    style={{ fill: '#161912' }}
                     className="animate-blink-star"
                     animate={{
                         cx: 200 + eyeOffset.x,

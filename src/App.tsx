@@ -24,17 +24,17 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1A2E] text-white p-8 font-sans transition-colors duration-500">
+    <div className="min-h-screen bg-[#161912] text-white p-8 font-sans transition-colors duration-500">
       <div className="max-w-4xl mx-auto">
         <header className="mb-12 text-center flex flex-col items-center">
           <div className="mb-8 w-64 h-64">
             <MeshGradientSVG />
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight text-white mb-4 drop-shadow-lg">
-            Danki Viewer
+            DANKI
           </h1>
           <p className="text-blue-200 text-lg">
-            View your .apkg files instantly. Serverless & Local.
+            convert, view and use .apkg (Anki) files quickly and in browser.
           </p>
         </header>
 

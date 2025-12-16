@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@paper-design/shaders-react": "^0.0.68",
     "@tailwindcss/typography": "^0.5.19",
+    "framer-motion": "^12.23.26",
     "fzstd": "^0.1.1",
     "html-react-parser": "^5.2.10",
     "jszip": "^3.10.1",

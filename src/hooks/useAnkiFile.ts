@@ -35,10 +35,10 @@ export const useAnkiFile = (): UseAnkiFileReturn => {
         try {
             console.log(`Processing ${files.length} files...`);
 
-            // Initialize SQL.js once
+            // Initialize SQL.js
             console.log('Initializing SQL.js...');
             const SQL = await initSqlJs({
-                locateFile: (file) => `/${file}`
+                locateFile: () => `${import.meta.env.BASE_URL}sql-wasm.wasm`
             });
 
             for (const file of files) {

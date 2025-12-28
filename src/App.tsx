@@ -1,10 +1,24 @@
-import React, { useCallback } from 'react';
-import parse from 'html-react-parser';
-import { useAnkiFile, type AnkiCard } from './hooks/useAnkiFile';
+import React, { useCallback, useState, useMemo } from 'react';
+import { useAnkiFile } from './hooks/useAnkiFile';
+import { downloadQuizletCSV } from './utils/csvExport';
 import { MeshGradientSVG } from './components/MeshGradientSVG';
+import { DeckListView } from './components/DeckListView';
+import { StudyConfigModal } from './components/StudyConfigModal';
+import { StudySession } from './components/StudySession';
 
 function App() {
   const { status, cards, error, processFiles, fileList } = useAnkiFile();
+  const [viewMode, setViewMode] = useState<'list' | 'study'>('list');
+  const [showStudyConfig, setShowStudyConfig] = useState(false);
+  const [studyCards, setStudyCards] = useState(cards);
+
+  // Reset view mode when new files are loaded
+  React.useEffect(() => {
+    if (status === 'ready') {
+      setViewMode('list');
+      setShowStudyConfig(false);
+    }
+  }, [status]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -21,6 +35,25 @@ function App() {
     if (e.target.files && e.target.files.length > 0) {
       processFiles(Array.from(e.target.files));
     }
+  };
+
+  // Extract all unique tags
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    cards.forEach(card => card.tags.forEach(tag => tags.add(tag)));
+    return Array.from(tags).sort();
+  }, [cards]);
+
+  const handleStartStudy = (selectedTags: string[]) => {
+    if (selectedTags.length === 0) {
+      setStudyCards(cards);
+    } else {
+      setStudyCards(cards.filter(card =>
+        card.tags.some(tag => selectedTags.includes(tag))
+      ));
+    }
+    setShowStudyConfig(false);
+    setViewMode('study');
   };
 
   return (
@@ -89,67 +122,54 @@ function App() {
           </div>
         )}
 
-        {/* Cards List */}
+        {/* Main Content */}
         {status === 'ready' && (
-          <div className="space-y-8 animate-fade-in-up">
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-              <h2 className="text-2xl font-bold text-white">
-                Found {cards.length} Cards
-              </h2>
-              <button
-                onClick={() => window.location.reload()}
-                className="text-sm text-blue-300 hover:text-white underline transition-colors"
-              >
-                Load another file
-              </button>
-            </div>
-            {cards.map((card) => (
-              <CardView key={card.id} card={card} />
-            ))}
+          <div className="animate-fade-in-up">
+            {/* Action Buttons */}
+            {viewMode === 'list' && (
+              <div className="flex gap-4 mb-8 justify-center">
+                <button
+                  onClick={() => setShowStudyConfig(true)}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all transform hover:scale-105"
+                >
+                  🎓 Study Deck
+                </button>
+                <button
+                  onClick={() => downloadQuizletCSV(cards)}
+                  className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold border border-white/10 transition-all transform hover:scale-105"
+                  title="Download as Quizlet CSV"
+                >
+                  📥 Download Quizlet CSV
+                </button>
+              </div>
+            )}
 
-            <div className="mt-12 p-4 bg-white/5 rounded-lg text-xs font-mono text-blue-300/70">
-              <p className="font-bold mb-2">Debug Info (Files in archive):</p>
-              <ul className="grid grid-cols-2 gap-2">
-                {fileList.map(f => (
-                  <li key={f}>{f}</li>
-                ))}
-              </ul>
-            </div>
+            {viewMode === 'list' ? (
+              <DeckListView
+                cards={cards}
+                fileList={fileList}
+                onLoadAnother={() => window.location.reload()}
+              />
+            ) : (
+              <StudySession
+                cards={studyCards}
+                onExit={() => setViewMode('list')}
+              />
+            )}
           </div>
+        )}
+
+        {/* Study Config Modal */}
+        {showStudyConfig && (
+          <StudyConfigModal
+            availableTags={availableTags}
+            onStartStudy={handleStartStudy}
+            onCancel={() => setShowStudyConfig(false)}
+          />
         )}
       </div>
     </div>
   );
 }
-
-const CardView = ({ card }: { card: AnkiCard }) => {
-  return (
-    <div className="bg-[#1C1F17] rounded-xl shadow-lg border border-white/5 overflow-hidden hover:border-blue-500/30 transition-all duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
-        <div className="p-8 prose prose-invert prose-lg max-w-none">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Front</h3>
-          <div className="text-gray-200 leading-relaxed font-serif">
-            {parse(card.front)}
-          </div>
-        </div>
-        <div className="p-8 prose prose-invert prose-lg max-w-none bg-black/20">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Back</h3>
-          <div className="text-gray-200 leading-relaxed font-serif">
-            {parse(card.back)}
-          </div>
-        </div>
-      </div>
-      {card.tags.length > 0 && (
-        <div className="bg-black/40 px-8 py-4 border-t border-white/5 flex gap-2 flex-wrap">
-          {card.tags.map(tag => (
-            <span key={tag} className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full font-semibold tracking-wide">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default App;

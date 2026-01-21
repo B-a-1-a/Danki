@@ -1,3 +1,9 @@
+# For quick use, visit:
+# https://b-a-1-a.github.io/Danki/
+
+## What is Danki?
+Danki allows you to quickly convert akpg into format compatible with Quizlet (csvs), or study online with flashcards.
+
 # React + TypeScript + Vite
 
 ## Running the Project

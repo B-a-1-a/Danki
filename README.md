@@ -4,7 +4,7 @@
 ## What is Danki?
 Danki allows you to quickly convert akpg into format compatible with Quizlet (csvs), or study online with flashcards.
 
-# React + TypeScript + Vite
+# Running Locally
 
 ## Running the Project
 
